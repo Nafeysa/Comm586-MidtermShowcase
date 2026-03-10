@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Narrative Intelligence Engine — Zettlebank Web</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Sora:wght@200;300;400;600;700;800&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07090f;
+  --bg2: #0b0f1a;
+  --bg3: #0f1520;
+  --surface: #131b2e;
+  --surface2: #192235;
+  --border: #1c2840;
+  --border2: #243252;
+  --neon-blue: #4f8ef7;
+  --neon-violet: #8b5cf6;
+  --neon-cyan: #22d3ee;
+  --neon-green: #10b981;
+  --neon-amber: #f59e0b;
+  --neon-rose: #f43f5e;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #4a5568;
+  --font-display: 'Sora', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: linear-gradient(rgba(79,142,247,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,142,247,0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.shell { display:flex; min-height:100vh; position:relative; z-index:1; }
+
+/* SIDEBAR */
+.sidebar { width:210px; flex-shrink:0; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:20px 0; position:sticky; top:0; height:100vh; overflow-y:auto; }
+.logo { padding:0 18px 18px; border-bottom:1px solid var(--border); margin-bottom:12px; }
+.logo-mark { font-family:var(--font-mono); font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--neon-blue); margin-bottom:4px; }
+.logo-name { font-family:var(--font-display); font-size:14px; font-weight:800; color:var(--text); line-height:1.2; }
+.logo-sub { font-size:9px; color:var(--text3); font-family:var(--font-mono); margin-top:3px; }
+.nav-section { padding:0 10px; flex:1; }
+.nav-label { font-size:8px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--text3); padding:0 8px; margin:14px 0 5px; }
+.nav-item { display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:6px; font-size:12px; color:var(--text2); cursor:pointer; transition:all 0.15s; margin-bottom:1px; border:1px solid transparent; }
+.nav-item:hover { background:var(--surface); color:var(--text); }
+.nav-item.active { background:rgba(79,142,247,0.1); color:var(--neon-blue); border-color:rgba(79,142,247,0.18); }
+.nav-dot { width:5px; height:5px; border-radius:50%; background:var(--text3); flex-shrink:0; }
+.nav-item.active .nav-dot { background:var(--neon-blue); box-shadow:0 0 5px var(--neon-blue); }
+.nav-num { font-family:var(--font-mono); font-size:9px; color:var(--text3); margin-left:auto; }
+.nav-item.active .nav-num { color:var(--neon-blue); opacity:0.6; }
+.sidebar-footer { padding:14px 16px 0; border-top:1px solid var(--border); }
+.sim-badge { font-size:9px; font-family:var(--font-mono); color:var(--neon-amber); background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.18); border-radius:4px; padding:5px 8px; text-align:center; line-height:1.6; }
+
+/* MAIN */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+.topbar { height:50px; border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 26px; gap:10px; background:rgba(7,9,15,0.85); backdrop-filter:blur(8px); position:sticky; top:0; z-index:10; }
+.breadcrumb { font-size:11px; color:var(--text3); font-family:var(--font-mono); }
+.breadcrumb span { color:var(--neon-blue); }
+.topbar-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+.status-pill { font-size:9px; font-family:var(--font-mono); padding:3px 9px; border-radius:20px; color:var(--neon-amber); border:1px solid rgba(245,158,11,0.25); background:rgba(245,158,11,0.06); }
+.pulse { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--neon-green); box-shadow:0 0 7px var(--neon-green); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.55;transform:scale(0.8)} }
+
+/* VIEWS */
+.view { display:none; padding:26px; overflow-y:auto; height:calc(100vh - 50px); animation:fadeUp 0.25s ease; }
+.view.active { display:block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.section-header { margin-bottom:22px; }
+.section-tag { font-size:9px; font-family:var(--font-mono); letter-spacing:0.14em; text-transform:uppercase; color:var(--neon-blue); margin-bottom:5px; }
+.section-title { font-family:var(--font-display); font-size:21px; font-weight:800; color:var(--text); margin-bottom:5px; }
+.section-desc { font-size:12px; color:var(--text2); line-height:1.65; max-width:580px; }
+
+.card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px; margin-bottom:14px; }
+.card-title { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--text); margin-bottom:3px; }
+.card-sub { font-size:10px; color:var(--text3); font-family:var(--font-mono); margin-bottom:12px; }
+
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:7px; font-size:12px; font-weight:500; cursor:pointer; transition:all 0.15s; border:none; font-family:var(--font-body); }
+.btn-primary { background:var(--neon-blue); color:#000; }
+.btn-primary:hover { background:#6ba3fa; box-shadow:0 0 14px rgba(79,142,247,0.35); }
+.btn-ghost { background:transparent; color:var(--text2); border:1px solid var(--border2); }
+.btn-ghost:hover { background:var(--surface2); color:var(--text); }
+.btn-violet { background:rgba(139,92,246,0.12); color:var(--neon-violet); border:1px solid rgba(139,92,246,0.22); }
+.btn-green { background:rgba(16,185,129,0.1); color:var(--neon-green); border:1px solid rgba(16,185,129,0.2); }
+.btn-sm { padding:5px 11px; font-size:10px; }
+
+.info-note { font-size:10px; font-family:var(--font-mono); color:var(--neon-amber); background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.14); border-radius:6px; padding:7px 11px; margin-bottom:14px; }
+.divider { height:1px; background:var(--border); margin:18px 0; }
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* VAULT */
+.vault-layout { display:grid; grid-template-columns:290px 1fr; gap:14px; height:calc(100vh - 210px); min-height:460px; }
+.vault-list-panel { display:flex; flex-direction:column; background:var(--bg2); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.vault-header { padding:11px 13px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.vault-header-title { font-family:var(--font-display); font-size:12px; font-weight:600; color:var(--text); }
+.vault-count { font-family:var(--font-mono); font-size:9px; color:var(--text3); background:var(--surface); padding:2px 7px; border-radius:4px; border:1px solid var(--border); }
+.vault-note-list { flex:1; overflow-y:auto; }
+.vnote { padding:11px 13px; border-bottom:1px solid var(--border); cursor:pointer; transition:all 0.12s; }
+.vnote:hover { background:var(--surface); }
+.vnote.active { background:rgba(79,142,247,0.07); border-left:2px solid var(--neon-blue); }
+.vnote-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:3px; }
+.vnote-title { font-size:12px; font-weight:500; color:var(--text); }
+.beat-tag { font-family:var(--font-mono); font-size:8px; padding:2px 6px; border-radius:3px; flex-shrink:0; }
+.vnote-excerpt { font-size:10px; color:var(--text3); line-height:1.45; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; margin-bottom:4px; }
+.vnote-meta { font-family:var(--font-mono); font-size:9px; color:var(--text3); display:flex; gap:6px; }
+.vault-add { padding:10px 13px; border-top:1px solid var(--border); }
+
+.vault-detail { display:flex; flex-direction:column; background:var(--bg2); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.vd-topbar { padding:11px 15px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.vd-body { flex:1; overflow-y:auto; padding:16px; }
+.note-text-box { font-family:var(--font-mono); font-size:11px; color:var(--text2); line-height:1.85; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:14px; white-space:pre-wrap; }
+.bcb { background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:13px; margin-bottom:13px; }
+.bcb-label { font-size:9px; font-family:var(--font-mono); letter-spacing:0.1em; text-transform:uppercase; color:var(--text3); margin-bottom:9px; }
+.beat-badge { display:inline-flex; align-items:center; gap:9px; padding:7px 13px; border-radius:7px; margin-bottom:8px; }
+.conf-row { display:flex; align-items:center; gap:9px; margin-top:7px; }
+.conf-bar-bg { flex:1; height:3px; background:var(--bg3); border-radius:2px; overflow:hidden; }
+.conf-bar-fill { height:100%; border-radius:2px; }
+.conn-list { display:flex; flex-direction:column; gap:5px; }
+.conn-item { display:flex; align-items:center; gap:8px; padding:7px 9px; background:var(--bg3); border:1px solid var(--border); border-radius:6px; font-size:10px; color:var(--text2); }
+
+/* BEAT MAP */
+.beat-map-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.beat-col { display:flex; flex-direction:column; gap:7px; }
+.beat-col-hdr { font-size:9px; font-family:var(--font-mono); font-weight:600; letter-spacing:0.1em; text-transform:uppercase; text-align:center; padding:6px; border-radius:5px; }
+.h-ki { color:#60a5fa; background:rgba(96,165,250,0.07); border:1px solid rgba(96,165,250,0.14); }
+.h-sho { color:#a78bfa; background:rgba(167,139,250,0.07); border:1px solid rgba(167,139,250,0.14); }
+.h-ten { color:#34d399; background:rgba(52,211,153,0.07); border:1px solid rgba(52,211,153,0.14); }
+.h-ketsu { color:#fb923c; background:rgba(251,146,60,0.07); border:1px solid rgba(251,146,60,0.14); }
+.bslot { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 11px; min-height:85px; transition:all 0.18s; position:relative; cursor:pointer; }
+.bslot:hover { border-color:var(--border2); background:var(--surface2); transform:translateY(-1px); }
+.bslot.empty { opacity:0.38; cursor:default; }
+.bslot.empty:hover { transform:none; background:var(--surface); }
+.bslot-bar { height:2px; border-radius:2px; margin-bottom:7px; }
+.bslot-id { font-family:var(--font-mono); font-size:8px; letter-spacing:0.07em; margin-bottom:4px; }
+.s-ki .bslot-id { color:#60a5fa; } .s-sho .bslot-id { color:#a78bfa; } .s-ten .bslot-id { color:#34d399; } .s-ketsu .bslot-id { color:#fb923c; }
+.bslot-title { font-family:var(--font-display); font-size:10px; font-weight:600; color:var(--text); margin-bottom:2px; line-height:1.3; }
+.bslot-nid { font-family:var(--font-mono); font-size:8px; color:var(--text3); margin-bottom:4px; }
+.bslot-excerpt { font-size:9px; color:var(--text3); line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.bslot-conf { display:flex; align-items:center; gap:4px; margin-top:6px; }
+.bslot-conf-bar { flex:1; height:2px; background:var(--bg3); border-radius:1px; overflow:hidden; }
+.bslot-conf-fill { height:100%; border-radius:1px; }
+.bslot-conf-num { font-family:var(--font-mono); font-size:8px; color:var(--text3); }
+.bslot-empty-lbl { font-size:9px; color:var(--text3); font-family:var(--font-mono); font-style:italic; }
+
+/* TWIST */
+.twist-card { background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:15px; transition:all 0.18s; cursor:pointer; margin-bottom:9px; position:relative; }
+.twist-card:hover { border-color:rgba(139,92,246,0.35); background:var(--surface2); }
+.twist-card.selected { border-color:var(--neon-violet); box-shadow:0 0 16px rgba(139,92,246,0.12); }
+.bridge-viz { display:flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:10px; margin-top:10px; }
+.nlbl { padding:2px 7px; border-radius:3px; }
+.nlbl-blue { background:rgba(79,142,247,0.1); border:1px solid rgba(79,142,247,0.22); color:var(--neon-blue); }
+.nlbl-violet { background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.22); color:var(--neon-violet); }
+.dash-arr { flex:1; border-top:1px dashed rgba(139,92,246,0.4); position:relative; }
+.dash-arr::after { content:'›'; position:absolute; right:-6px; top:-10px; color:var(--neon-violet); font-size:13px; }
+
+/* GRAPH */
+.graph-canvas { background:var(--bg2); border:1px solid var(--border); border-radius:10px; width:100%; height:370px; overflow:hidden; }
+.edge-panel { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:15px; margin-top:13px; }
+
+/* TRI-AGENT */
+.agent-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:13px; }
+.agent-card { background:var(--bg2); border:1px solid var(--border); border-radius:9px; padding:14px; }
+.agent-card.structural { border-top:2px solid var(--neon-blue); }
+.agent-card.semantic { border-top:2px solid var(--neon-violet); }
+.agent-card.auditor { border-top:2px solid var(--neon-green); }
+.agent-name { font-family:var(--font-display); font-size:10px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em; margin:4px 0 5px; }
+.agent-verdict { font-size:11px; color:var(--text); line-height:1.55; }
+.auditor-badge { display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono); font-size:10px; font-weight:600; padding:3px 9px; border-radius:20px; margin-bottom:5px; }
+.badge-accept { color:var(--neon-green); background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.22); }
+.explainable { background:var(--bg2); border:1px solid var(--border); border-left:3px solid var(--neon-green); border-radius:0 8px 8px 0; padding:12px; font-size:12px; color:var(--text2); line-height:1.7; font-style:italic; }
+
+/* MARKET */
+.trends-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; }
+.trend-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px; }
+.trend-topic { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--text); margin-bottom:3px; }
+.trend-cat { font-family:var(--font-mono); font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:10px; }
+.trend-bar-bg { height:5px; background:var(--bg3); border-radius:3px; overflow:hidden; margin-bottom:5px; }
+.trend-bar-fill { height:100%; border-radius:3px; }
+.trend-row { display:flex; justify-content:space-between; font-size:10px; color:var(--text3); font-family:var(--font-mono); }
+.trend-rising { font-size:9px; padding:2px 7px; border-radius:20px; color:var(--neon-green); background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.18); margin-top:6px; display:inline-block; }
+
+/* LANDING */
+.hero-tag { font-family:var(--font-mono); font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--neon-blue); border:1px solid rgba(79,142,247,0.28); padding:4px 13px; border-radius:20px; margin-bottom:18px; background:rgba(79,142,247,0.05); display:inline-block; }
+.hero-title { font-family:var(--font-display); font-size:38px; font-weight:800; line-height:1.1; margin-bottom:14px; }
+.hero-title em { font-style:normal; background:linear-gradient(135deg,var(--neon-blue),var(--neon-violet)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.fpill { font-size:10px; font-family:var(--font-mono); padding:4px 11px; border-radius:20px; border:1px solid; }
+.fp-blue { color:var(--neon-blue); border-color:rgba(79,142,247,0.28); background:rgba(79,142,247,0.06); }
+.fp-violet { color:var(--neon-violet); border-color:rgba(139,92,246,0.28); background:rgba(139,92,246,0.06); }
+.fp-cyan { color:var(--neon-cyan); border-color:rgba(34,211,238,0.28); background:rgba(34,211,238,0.06); }
+.fp-green { color:var(--neon-green); border-color:rgba(16,185,129,0.28); background:rgba(16,185,129,0.06); }
+
+/* PROGRESS */
+.prog { display:flex; align-items:center; gap:3px; margin-bottom:20px; flex-wrap:wrap; }
+.ps { font-family:var(--font-mono); font-size:9px; padding:4px 9px; border-radius:5px; }
+.ps-done { color:var(--neon-green); background:rgba(16,185,129,0.07); }
+.ps-cur { color:var(--neon-blue); background:rgba(79,142,247,0.09); border:1px solid rgba(79,142,247,0.18); }
+.ps-pend { color:var(--text3); }
+.pa { color:var(--text3); font-size:11px; }
+
+/* MODAL */
+.modal-ov { display:none; position:fixed; inset:0; z-index:100; align-items:center; justify-content:center; background:rgba(0,0,0,0.72); backdrop-filter:blur(5px); }
+.modal-ov.open { display:flex; }
+.modal-box { background:var(--surface); border:1px solid var(--border2); border-radius:12px; padding:22px; max-width:480px; width:92%; animation:fadeUp 0.2s ease; }
+.modal-close { float:right; background:none; border:none; color:var(--text3); font-size:17px; cursor:pointer; }
+.modal-close:hover { color:var(--text); }
+
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+.three-col { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; }
+
+/* CHARACTER GRAPH */
+.cg-layout { display:grid; grid-template-columns:1fr 320px; gap:14px; }
+.cg-canvas { background:var(--bg2); border:1px solid var(--border); border-radius:10px; position:relative; overflow:hidden; height:440px; }
+.cg-svg { width:100%; height:100%; }
+.cg-sidebar { display:flex; flex-direction:column; gap:11px; }
+.cg-scene-sel { background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:13px; }
+.cg-scene-title { font-size:9px; font-family:var(--font-mono); letter-spacing:0.1em; text-transform:uppercase; color:var(--text3); margin-bottom:8px; }
+.scene-btn { display:block; width:100%; text-align:left; padding:7px 10px; border-radius:6px; font-size:11px; color:var(--text2); background:transparent; border:1px solid transparent; cursor:pointer; font-family:var(--font-body); transition:all 0.12s; margin-bottom:3px; }
+.scene-btn:hover { background:var(--surface2); color:var(--text); border-color:var(--border2); }
+.scene-btn.active { background:rgba(34,211,238,0.08); color:var(--neon-cyan); border-color:rgba(34,211,238,0.2); }
+.cg-detail { background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:13px; flex:1; overflow-y:auto; }
+.cg-detail-title { font-size:9px; font-family:var(--font-mono); letter-spacing:0.1em; text-transform:uppercase; color:var(--text3); margin-bottom:9px; }
+.char-card { background:var(--bg2); border:1px solid var(--border); border-radius:7px; padding:10px; margin-bottom:8px; cursor:pointer; transition:all 0.12s; }
+.char-card:hover { border-color:var(--border2); }
+.char-card.active { border-color:var(--neon-rose); background:rgba(244,63,94,0.05); }
+.char-name { font-family:var(--font-display); font-size:12px; font-weight:700; color:var(--text); margin-bottom:3px; }
+.char-aliases { font-family:var(--font-mono); font-size:9px; color:var(--text3); margin-bottom:5px; }
+.char-desc { font-size:10px; color:var(--text2); line-height:1.5; }
+.rel-row { display:flex; align-items:center; gap:7px; padding:6px 8px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; margin-bottom:5px; font-size:10px; }
+.rel-type-badge { font-family:var(--font-mono); font-size:8px; padding:1px 6px; border-radius:3px; flex-shrink:0; }
+.rt-family { color:#fb923c; background:rgba(251,146,60,0.1); border:1px solid rgba(251,146,60,0.2); }
+.rt-boss { color:#f43f5e; background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.2); }
+.rt-ally { color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); }
+.rt-rival { color:#8b5cf6; background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); }
+.rt-unknown { color:#64748b; background:rgba(100,116,139,0.1); border:1px solid rgba(100,116,139,0.2); }
+.rt-protects { color:#22d3ee; background:rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.2); }
+.rt-subordinate { color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.2); }
+.interaction-row { display:flex; align-items:flex-start; gap:7px; padding:6px 8px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; margin-bottom:5px; font-size:10px; }
+.int-type { font-family:var(--font-mono); font-size:8px; padding:1px 5px; border-radius:3px; flex-shrink:0; color:var(--neon-blue); background:rgba(79,142,247,0.1); border:1px solid rgba(79,142,247,0.2); }
+.sentiment-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+.s-pos { background:var(--neon-green); }
+.s-neg { background:var(--neon-rose); }
+.s-neu { background:var(--text3); }
+.s-mix { background:var(--neon-amber); }
+.cg-summary { background:var(--bg2); border:1px solid var(--border); border-left:3px solid var(--neon-cyan); border-radius:0 8px 8px 0; padding:12px; font-size:11px; color:var(--text2); line-height:1.7; margin-bottom:13px; }
+.conf-pip { font-family:var(--font-mono); font-size:9px; color:var(--text3); margin-left:auto; flex-shrink:0; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">Zettlebank Web</div>
+    <div class="logo-name">Narrative<br>Intelligence Engine</div>
+    <div class="logo-sub">NIE v0.4 · demo build</div>
+  </div>
+  <nav class="nav-section">
+    <div class="nav-label">Navigate</div>
+    <div class="nav-item active" onclick="show('landing')"><div class="nav-dot"></div>Overview<span class="nav-num">00</span></div>
+    <div class="nav-item" onclick="show('vault')"><div class="nav-dot"></div>Note Vault<span class="nav-num">01</span></div>
+    <div class="nav-item" onclick="show('beatmap')"><div class="nav-dot"></div>Beat Map<span class="nav-num">02</span></div>
+    <div class="nav-item" onclick="show('twists')"><div class="nav-dot"></div>Twist Detection<span class="nav-num">03</span></div>
+    <div class="nav-item" onclick="show('graph')"><div class="nav-dot"></div>Narrative Flow<span class="nav-num">04</span></div>
+    <div class="nav-item" onclick="show('triagent')"><div class="nav-dot"></div>Tri-Agent Explain<span class="nav-num">05</span></div>
+    <div class="nav-item" onclick="show('market')"><div class="nav-dot"></div>Market Alignment<span class="nav-num">06</span></div>
+    <div class="nav-item" onclick="show('chargraph')"><div class="nav-dot"></div>Character Graph<span class="nav-num">07</span></div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sim-badge">⚠ DEMO<br>Simulated AI reasoning<br>Data is illustrative</div>
+  </div>
+</aside>
+
+<main class="main">
+<div class="topbar">
+  <div class="breadcrumb">NIE / <span id="bc">Overview</span></div>
+  <div class="topbar-right"><span class="pulse"></span><div class="status-pill">DEMO · Simulated</div></div>
+</div>
+
+<!-- ══ 00 LANDING ══ -->
+<div id="view-landing" class="view active">
+  <div style="max-width:600px;padding:28px 0 18px;">
+    <div class="hero-tag">Narrative Intelligence Engine</div>
+    <h1 class="hero-title">A Vault of Notes.<br><em>Living Story Architecture.</em></h1>
+    <p style="font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:26px;">Writers and researchers upload story fragments into a shared vault. NIE classifies each note into its Kishōtenketsu beat position, detects structural twist relationships <em>across</em> notes, and maps the whole world-build to real market signals.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;">
+      <span class="fpill fp-blue">Multi-note vault</span>
+      <span class="fpill fp-violet">Per-note beat classification</span>
+      <span class="fpill fp-cyan">Cross-note twist detection</span>
+      <span class="fpill fp-green">Market alignment</span>
+    </div>
+    <button class="btn btn-primary" style="font-size:13px;padding:11px 26px;" onclick="show('vault')">Open Note Vault →</button>
+  </div>
+  <div class="divider"></div>
+  <div class="three-col" style="margin-bottom:22px;">
+    <div class="card" style="border-top:2px solid var(--neon-blue);">
+      <div class="card-title">Note Vault</div><div class="card-sub">MULTI-NOTE LIBRARY</div>
+      <p style="font-size:11px;color:var(--text2);line-height:1.6;">Upload any number of story fragments, scene notes, or research clippings. Each is stored individually and queued for structural analysis.</p>
+    </div>
+    <div class="card" style="border-top:2px solid var(--neon-violet);">
+      <div class="card-title">Beat Classification</div><div class="card-sub">WHERE DOES THIS NOTE FIT?</div>
+      <p style="font-size:11px;color:var(--text2);line-height:1.6;">Each note is classified into its position in a 16-beat Kishōtenketsu map — structural placement with confidence scoring, not a forced full expansion.</p>
+    </div>
+    <div class="card" style="border-top:2px solid var(--neon-green);">
+      <div class="card-title">Vault-Wide Graph</div><div class="card-sub">CROSS-NOTE RELATIONSHIPS</div>
+      <p style="font-size:11px;color:var(--text2);line-height:1.6;">Twist candidates and directed edges are detected across all notes in the vault — building a narrative graph from the entire collection.</p>
+    </div>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;">
+    <div class="section-tag" style="margin-bottom:11px;">User Journey</div>
+    <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 11px;font-size:11px;color:var(--text2);cursor:pointer;" onclick="show('vault')">📁 Upload Notes</div>
+      <span style="color:var(--text3);">→</span>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 11px;font-size:11px;color:var(--text2);cursor:pointer;" onclick="show('vault')">🏷 Beat Classification</div>
+      <span style="color:var(--text3);">→</span>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 11px;font-size:11px;color:var(--text2);cursor:pointer;" onclick="show('beatmap')">🗺 Vault Beat Map</div>
+      <span style="color:var(--text3);">→</span>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 11px;font-size:11px;color:var(--text2);cursor:pointer;" onclick="show('twists')">🔀 Find Twists</div>
+      <span style="color:var(--text3);">→</span>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 11px;font-size:11px;color:var(--text2);cursor:pointer;" onclick="show('graph')">🌐 Flow Graph</div>
+      <span style="color:var(--text3);">→</span>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 11px;font-size:11px;color:var(--text2);cursor:pointer;" onclick="show('triagent')">🤖 Explain</div>
+      <span style="color:var(--text3);">→</span>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 11px;font-size:11px;color:var(--text2);cursor:pointer;" onclick="show('market')">📈 Market</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 01 VAULT ══ -->
+<div id="view-vault" class="view">
+  <div class="prog">
+    <span class="ps ps-cur">01 · Vault</span><span class="pa">›</span>
+    <span class="ps ps-pend">02 · Beat Map</span><span class="pa">›</span>
+    <span class="ps ps-pend">03 · Twists</span><span class="pa">›</span>
+    <span class="ps ps-pend">04 · Flow</span><span class="pa">›</span>
+    <span class="ps ps-pend">05 · Explain</span><span class="pa">›</span>
+    <span class="ps ps-pend">06 · Market</span>
+  </div>
+  <div class="section-header">
+    <div class="section-tag">Step 01 · Note Vault</div>
+    <div class="section-title">Your Story Vault</div>
+    <div class="section-desc">Each uploaded note is individually analyzed and classified into its position within the 16-beat Kishōtenketsu structure. Select any note to inspect its beat classification and cross-vault connections.</div>
+  </div>
+  <div class="info-note">⚠ Beat positions are AI-classified per note, not manually assigned. Classification reflects where this fragment structurally belongs in the whole world-build. [simulated]</div>
+  <div class="vault-layout">
+    <div class="vault-list-panel">
+      <div class="vault-header">
+        <div class="vault-header-title">Vault · Maya's World</div>
+        <div class="vault-count">7 notes</div>
+      </div>
+      <div class="vault-note-list" id="vnote-list"></div>
+      <div class="vault-add">
+        <button class="btn btn-ghost" style="width:100%;justify-content:center;font-size:11px;" onclick="alert('In production: drag-and-drop .txt / .md / .docx files. Each note is auto-classified upon upload.')">+ Upload New Note</button>
+      </div>
+    </div>
+    <div class="vault-detail">
+      <div class="vd-topbar" id="vd-topbar"><div style="font-size:12px;color:var(--text3);">Select a note ←</div></div>
+      <div class="vd-body" id="vd-body"><div style="height:200px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-family:var(--font-mono);font-size:11px;">← Choose a note to inspect</div></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:13px;">
+    <button class="btn btn-primary" onclick="show('beatmap')">View Vault Beat Map →</button>
+    <button class="btn btn-ghost" onclick="show('landing')">← Back</button>
+  </div>
+</div>
+
+<!-- ══ 02 BEAT MAP ══ -->
+<div id="view-beatmap" class="view">
+  <div class="prog">
+    <span class="ps ps-done">✓ Vault</span><span class="pa">›</span>
+    <span class="ps ps-cur">02 · Beat Map</span><span class="pa">›</span>
+    <span class="ps ps-pend">03 · Twists</span><span class="pa">›</span>
+    <span class="ps ps-pend">04 · Flow</span><span class="pa">›</span>
+    <span class="ps ps-pend">05 · Explain</span><span class="pa">›</span>
+    <span class="ps ps-pend">06 · Market</span>
+  </div>
+  <div class="section-header">
+    <div class="section-tag">Step 02 · Feature 1</div>
+    <div class="section-title">Vault-Wide 16-Beat Map</div>
+    <div class="section-desc">The 4×4 Kishōtenketsu matrix shows where each vault note has been classified. Empty slots are narrative gaps — opportunities for new notes. Click any occupied slot to inspect it.</div>
+  </div>
+  <div class="info-note">⚠ Notes are placed by AI classification — not every slot needs to be filled. Gaps are meaningful.</div>
+  <div class="beat-map-grid" id="beat-map-grid"></div>
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button class="btn btn-primary" onclick="show('twists')">Find Twist Candidates →</button>
+    <button class="btn btn-ghost" onclick="show('vault')">← Back</button>
+  </div>
+</div>
+
+<!-- ══ 03 TWISTS ══ -->
+<div id="view-twists" class="view">
+  <div class="prog">
+    <span class="ps ps-done">✓ Vault</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Beat Map</span><span class="pa">›</span>
+    <span class="ps ps-cur">03 · Twists</span><span class="pa">›</span>
+    <span class="ps ps-pend">04 · Flow</span><span class="pa">›</span>
+    <span class="ps ps-pend">05 · Explain</span><span class="pa">›</span>
+    <span class="ps ps-pend">06 · Market</span>
+  </div>
+  <div class="section-header">
+    <div class="section-tag">Step 03 · Feature 2</div>
+    <div class="section-title">Twist Detection — Structural Holes</div>
+    <div class="section-desc">Across all vault notes, the engine scores Top-3 "Ten" (bridge) candidates — notes that introduce contrast-based recontextualization, not simple conflict.</div>
+  </div>
+  <div class="info-note">⚠ Bridge scores are simulated across vault notes. Structural hole detection is approximated, not fully automated.</div>
+
+  <div class="twist-card selected" onclick="selTwist(this)">
+    <div style="position:absolute;top:13px;right:13px;font-family:var(--font-mono);font-size:9px;color:var(--text3);">#1</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:300;color:var(--neon-violet);">0.82</div>
+      <div style="font-family:var(--font-mono);font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);color:var(--neon-violet);">note-42</div>
+      <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);">bridge_score</div>
+    </div>
+    <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px;">GDPR Compliance Audit Trail</div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:9px;">Reframes the data purge in note-07 from individual suspicion to systemic compliance act — a perspective shift that bridges Ki and Ten clusters in the vault.</div>
+    <div class="bridge-viz">
+      <div class="nlbl nlbl-blue">note-07 [Ki-2]</div>
+      <div class="dash-arr"></div>
+      <div class="nlbl nlbl-violet">note-42 [Ten-3]</div>
+    </div>
+  </div>
+
+  <div class="twist-card" onclick="selTwist(this)">
+    <div style="position:absolute;top:13px;right:13px;font-family:var(--font-mono);font-size:9px;color:var(--text3);">#2</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:300;color:#a78bfa;">0.71</div>
+      <div style="font-family:var(--font-mono);font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);color:#a78bfa;">note-17</div>
+    </div>
+    <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px;">Whistleblower Protection Framework</div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:9px;">Shifts narrative from individual vigilance (note-07) to institutional vulnerability — recontextualizes Maya's act of "writing it down" as a legal protection act.</div>
+    <div class="bridge-viz">
+      <div class="nlbl nlbl-blue">note-07 [Ki-2]</div>
+      <div class="dash-arr"></div>
+      <div class="nlbl nlbl-violet">note-17 [Sho-4]</div>
+    </div>
+  </div>
+
+  <div class="twist-card" onclick="selTwist(this)">
+    <div style="position:absolute;top:13px;right:13px;font-family:var(--font-mono);font-size:9px;color:var(--text3);">#3</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
+      <div style="font-family:var(--font-mono);font-size:22px;font-weight:300;color:#94a3b8;">0.58</div>
+      <div style="font-family:var(--font-mono);font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.2);color:#94a3b8;">note-91</div>
+    </div>
+    <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px;">Corporate Surveillance Culture</div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:9px;">Adds macro cultural lens — reframes the mentor's dismissal (note-12) as complicit normalization rather than ignorance. Bridges character scene to systemic research.</div>
+    <div class="bridge-viz">
+      <div class="nlbl nlbl-blue">note-12 [Sho-2]</div>
+      <div class="dash-arr"></div>
+      <div class="nlbl nlbl-violet">note-91 [Ten-1]</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:4px;">
+    <button class="btn btn-primary" onclick="show('graph')">Visualize Directed Flow →</button>
+    <button class="btn btn-ghost" onclick="show('beatmap')">← Back</button>
+  </div>
+</div>
+
+<!-- ══ 04 GRAPH ══ -->
+<div id="view-graph" class="view">
+  <div class="prog">
+    <span class="ps ps-done">✓ Vault</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Beat Map</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Twists</span><span class="pa">›</span>
+    <span class="ps ps-cur">04 · Flow</span><span class="pa">›</span>
+    <span class="ps ps-pend">05 · Explain</span><span class="pa">›</span>
+    <span class="ps ps-pend">06 · Market</span>
+  </div>
+  <div class="section-header">
+    <div class="section-tag">Step 04 · Feature 3</div>
+    <div class="section-title">Directional Narrative Flow</div>
+    <div class="section-desc">Vault notes connected by scored directed edges. Each edge shows relation type and beat-position context. Click an edge to inspect or act.</div>
+  </div>
+  <div class="graph-canvas">
+    <svg width="100%" height="100%" viewBox="0 0 720 360">
+      <defs>
+        <marker id="a-blue" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#4f8ef7"/></marker>
+        <marker id="a-violet" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#8b5cf6"/></marker>
+        <marker id="a-cyan" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#22d3ee"/></marker>
+        <marker id="a-amber" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#f59e0b"/></marker>
+        <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <!-- edges -->
+      <path d="M152,125 C265,75 385,82 455,120" stroke="#22d3ee" stroke-width="1.7" fill="none" stroke-dasharray="5,3" marker-end="url(#a-cyan)" style="cursor:pointer" onclick="selEdge('note-07','note-42','twist_bridge',0.92,'Ki-2','Ten-3')"/>
+      <text x="284" y="77" fill="#22d3ee" font-size="9" font-family="DM Mono,monospace">twist_bridge · 0.92</text>
+      <path d="M153,168 C272,168 374,183 456,172" stroke="#8b5cf6" stroke-width="1.4" fill="none" stroke-dasharray="5,3" marker-end="url(#a-violet)" style="cursor:pointer" onclick="selEdge('note-07','note-17','potential_to',0.75,'Ki-2','Sho-4')"/>
+      <text x="278" y="190" fill="#8b5cf6" font-size="9" font-family="DM Mono,monospace">potential_to · 0.75</text>
+      <path d="M150,212 C262,254 374,258 454,234" stroke="#4f8ef7" stroke-width="1.2" fill="none" stroke-dasharray="5,3" marker-end="url(#a-blue)" style="cursor:pointer" onclick="selEdge('note-07','note-91','motivates',0.58,'Ki-2','Ten-1')"/>
+      <text x="270" y="272" fill="#4f8ef7" font-size="9" font-family="DM Mono,monospace">motivates · 0.58</text>
+      <path d="M525,137 C588,142 608,192 580,218" stroke="#f59e0b" stroke-width="1.2" fill="none" stroke-dasharray="4,3" marker-end="url(#a-amber)" style="cursor:pointer" onclick="selEdge('note-42','note-12','motivates',0.66,'Ten-3','Sho-2')"/>
+      <text x="606" y="186" fill="#f59e0b" font-size="8" font-family="DM Mono,monospace">mot·0.66</text>
+      <!-- nodes -->
+      <g filter="url(#glow)"><circle cx="112" cy="168" r="44" fill="rgba(79,142,247,0.08)" stroke="#4f8ef7" stroke-width="1.5"/></g>
+      <text x="112" y="160" text-anchor="middle" fill="#4f8ef7" font-size="9" font-family="DM Mono,monospace">note-07</text>
+      <text x="112" y="174" text-anchor="middle" fill="#94a3b8" font-size="8" font-family="DM Mono,monospace">Maya Logs</text>
+      <text x="112" y="187" text-anchor="middle" fill="#60a5fa" font-size="7" font-family="DM Mono,monospace">[Ki-2]</text>
+      <g filter="url(#glow)"><circle cx="494" cy="130" r="37" fill="rgba(34,211,238,0.07)" stroke="#22d3ee" stroke-width="1.4"/></g>
+      <text x="494" y="123" text-anchor="middle" fill="#22d3ee" font-size="9" font-family="DM Mono,monospace">note-42</text>
+      <text x="494" y="136" text-anchor="middle" fill="#94a3b8" font-size="8" font-family="DM Mono,monospace">GDPR Audit</text>
+      <text x="494" y="149" text-anchor="middle" fill="#34d399" font-size="7" font-family="DM Mono,monospace">[Ten-3]</text>
+      <circle cx="494" cy="198" r="33" fill="rgba(139,92,246,0.07)" stroke="#8b5cf6" stroke-width="1.2"/>
+      <text x="494" y="191" text-anchor="middle" fill="#8b5cf6" font-size="9" font-family="DM Mono,monospace">note-17</text>
+      <text x="494" y="204" text-anchor="middle" fill="#94a3b8" font-size="8" font-family="DM Mono,monospace">Whistleblow</text>
+      <text x="494" y="217" text-anchor="middle" fill="#a78bfa" font-size="7" font-family="DM Mono,monospace">[Sho-4]</text>
+      <circle cx="494" cy="260" r="31" fill="rgba(79,142,247,0.05)" stroke="#4f8ef7" stroke-width="1"/>
+      <text x="494" y="253" text-anchor="middle" fill="#4f8ef7" font-size="9" font-family="DM Mono,monospace">note-91</text>
+      <text x="494" y="266" text-anchor="middle" fill="#94a3b8" font-size="8" font-family="DM Mono,monospace">Surveillance</text>
+      <text x="494" y="278" text-anchor="middle" fill="#60a5fa" font-size="7" font-family="DM Mono,monospace">[Ten-1]</text>
+      <circle cx="580" cy="250" r="29" fill="rgba(245,158,11,0.06)" stroke="#f59e0b" stroke-width="1"/>
+      <text x="580" y="244" text-anchor="middle" fill="#f59e0b" font-size="9" font-family="DM Mono,monospace">note-12</text>
+      <text x="580" y="257" text-anchor="middle" fill="#94a3b8" font-size="8" font-family="DM Mono,monospace">Mentor</text>
+      <text x="580" y="269" text-anchor="middle" fill="#fb923c" font-size="7" font-family="DM Mono,monospace">[Sho-2]</text>
+      <!-- legend -->
+      <rect x="18" y="16" width="188" height="90" rx="5" fill="rgba(11,15,26,0.93)" stroke="rgba(28,40,64,0.9)"/>
+      <text x="27" y="33" fill="#4a5568" font-size="8" font-family="DM Mono,monospace">EDGES (click to inspect)</text>
+      <line x1="27" y1="45" x2="58" y2="45" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="65" y="49" fill="#e2e8f0" font-size="8" font-family="DM Mono,monospace">twist_bridge</text>
+      <line x1="27" y1="59" x2="58" y2="59" stroke="#8b5cf6" stroke-width="1.3" stroke-dasharray="4,2"/>
+      <text x="65" y="63" fill="#e2e8f0" font-size="8" font-family="DM Mono,monospace">potential_to</text>
+      <line x1="27" y1="73" x2="58" y2="73" stroke="#4f8ef7" stroke-width="1.1" stroke-dasharray="4,2"/>
+      <text x="65" y="77" fill="#e2e8f0" font-size="8" font-family="DM Mono,monospace">motivates</text>
+      <text x="27" y="95" fill="#4a5568" font-size="7" font-family="DM Mono,monospace">[brackets] = beat position</text>
+    </svg>
+  </div>
+  <div class="edge-panel" id="edge-panel">
+    <div style="font-size:11px;color:var(--text3);text-align:center;padding:7px 0;font-family:var(--font-mono);">Click an edge in the graph to inspect it</div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:13px;">
+    <button class="btn btn-primary" onclick="show('triagent')">Tri-Agent Explanation →</button>
+    <button class="btn btn-ghost" onclick="show('twists')">← Back</button>
+  </div>
+</div>
+
+<!-- ══ 05 TRI-AGENT ══ -->
+<div id="view-triagent" class="view">
+  <div class="prog">
+    <span class="ps ps-done">✓ Vault</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Beat Map</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Twists</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Flow</span><span class="pa">›</span>
+    <span class="ps ps-cur">05 · Explain</span><span class="pa">›</span>
+    <span class="ps ps-pend">06 · Market</span>
+  </div>
+  <div class="section-header">
+    <div class="section-tag">Step 05 · Feature 4</div>
+    <div class="section-title">Tri-Agent Explainability</div>
+    <div class="section-desc">Every vault edge passes through three reasoning layers. Three agents each assess the connection from different angles before the Auditor renders a final verdict.</div>
+  </div>
+  <div class="two-col" style="margin-bottom:13px;">
+    <div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:7px;">SELECTED EDGE</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--neon-blue);background:rgba(79,142,247,0.1);padding:2px 7px;border-radius:3px;">note-07 [Ki-2]</div>
+          <div style="color:var(--neon-cyan);font-size:14px;">→</div>
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--neon-cyan);background:rgba(34,211,238,0.1);padding:2px 7px;border-radius:3px;">note-42 [Ten-3]</div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);">score: <span style="color:var(--neon-cyan);">0.92</span> · <span style="color:var(--neon-cyan);">twist_bridge</span> · structural</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:7px;">MICROCOPY (UI hover card)</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;">
+        <div style="font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;">Policy Reframes Data Deletion</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;">GDPR lens transforms a suspicious erasure into a systemic institutional act.</div>
+      </div>
+    </div>
+  </div>
+  <div class="agent-grid">
+    <div class="agent-card structural">
+      <div style="font-size:17px;">🔗</div>
+      <div class="agent-name">Structural Agent</div>
+      <div class="agent-verdict">note-42 bridges two disconnected vault clusters: operational log notes (Ki) and regulatory compliance notes (Ten). High-novelty structural hole filler across the vault graph.</div>
+    </div>
+    <div class="agent-card semantic">
+      <div style="font-size:17px;">🧬</div>
+      <div class="agent-name">Semantic Agent</div>
+      <div class="agent-verdict">Strong thematic overlap on data governance and audit trails. Policy vocabulary in note-42 directly extends the compliance subtext of note-07.</div>
+    </div>
+    <div class="agent-card auditor">
+      <div style="font-size:17px;">⚖️</div>
+      <div class="agent-name">Narrative Auditor</div>
+      <div class="auditor-badge badge-accept">✓ Accept</div>
+      <div class="agent-verdict">High novelty + plausible recontextualization. Score 0.92 confirms strong twist candidacy. Structurally sound edge.</div>
+    </div>
+  </div>
+  <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:7px;">EXPLAINABLE TEXT</div>
+  <div class="explainable">This connection bridges Maya's personal suspicion with the broader regulatory landscape, introducing a systemic lens that reframes individual anomaly as institutional compliance behavior. The GDPR audit trail note acts as a narrative hinge — transforming personal anxiety into structural critique.</div>
+  <div style="display:flex;gap:8px;margin-top:13px;">
+    <button class="btn btn-green btn-sm" onclick="alert('Edge accepted. Narrative path updated.')">✓ Accept Edge</button>
+    <button class="btn btn-sm" style="background:rgba(245,158,11,0.1);color:var(--neon-amber);border:1px solid rgba(245,158,11,0.2);" onclick="alert('Revision mode.')">✏ Revise</button>
+    <button class="btn btn-ghost btn-sm" onclick="alert('Dismissed.')">✕ Dismiss</button>
+  </div>
+  <div class="divider"></div>
+  <div style="display:flex;gap:10px;">
+    <button class="btn btn-primary" onclick="show('market')">Market Alignment →</button>
+    <button class="btn btn-ghost" onclick="show('graph')">← Back</button>
+  </div>
+</div>
+
+<!-- ══ 06 MARKET ══ -->
+<div id="view-market" class="view">
+  <div class="prog">
+    <span class="ps ps-done">✓ Vault</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Beat Map</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Twists</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Flow</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Explain</span><span class="pa">›</span>
+    <span class="ps ps-cur">06 · Market</span>
+  </div>
+  <div class="section-header">
+    <div class="section-tag">Step 06 · Feature 5</div>
+    <div class="section-title">Market Alignment Engine</div>
+    <div class="section-desc">Themes extracted across all vault notes are matched against Google Trends signals. See how your entire world-build aligns with rising market conversations.</div>
+  </div>
+  <div class="info-note">⚠ Trend data is simulated for demo. Production connects to live Google Trends API.</div>
+  <div class="trends-grid">
+    <div class="trend-card" style="border-top:2px solid var(--neon-cyan);">
+      <div class="trend-topic">Data Privacy & GDPR</div><div class="trend-cat">Policy · Technology</div>
+      <div class="trend-bar-bg"><div class="trend-bar-fill" style="width:88%;background:linear-gradient(90deg,#22d3ee,#0891b2)"></div></div>
+      <div class="trend-row"><span>Trend Index</span><span style="color:var(--text);">88 / 100</span></div>
+      <span class="trend-rising">↑ Rising +23%</span>
+    </div>
+    <div class="trend-card" style="border-top:2px solid var(--neon-violet);">
+      <div class="trend-topic">Whistleblower Protections in Tech</div><div class="trend-cat">Policy · Cultural Debate</div>
+      <div class="trend-bar-bg"><div class="trend-bar-fill" style="width:74%;background:linear-gradient(90deg,#8b5cf6,#6d28d9)"></div></div>
+      <div class="trend-row"><span>Trend Index</span><span style="color:var(--text);">74 / 100</span></div>
+      <span class="trend-rising">↑ Rising +11%</span>
+    </div>
+    <div class="trend-card" style="border-top:2px solid var(--neon-blue);">
+      <div class="trend-topic">AI Auditing & Accountability</div><div class="trend-cat">Technology · Industry</div>
+      <div class="trend-bar-bg"><div class="trend-bar-fill" style="width:91%;background:linear-gradient(90deg,#4f8ef7,#2563eb)"></div></div>
+      <div class="trend-row"><span>Trend Index</span><span style="color:var(--text);">91 / 100</span></div>
+      <span class="trend-rising">↑ Rising +38%</span>
+    </div>
+    <div class="trend-card" style="border-top:2px solid var(--neon-amber);">
+      <div class="trend-topic">Corporate Surveillance Culture</div><div class="trend-cat">Cultural Debate · Research</div>
+      <div class="trend-bar-bg"><div class="trend-bar-fill" style="width:62%;background:linear-gradient(90deg,#f59e0b,#d97706)"></div></div>
+      <div class="trend-row"><span>Trend Index</span><span style="color:var(--text);">62 / 100</span></div>
+      <span style="font-size:9px;padding:2px 7px;border-radius:20px;color:var(--neon-amber);background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.18);margin-top:6px;display:inline-block;">→ Stable</span>
+    </div>
+  </div>
+  <div style="background:linear-gradient(135deg,rgba(79,142,247,0.07),rgba(139,92,246,0.07));border:1px solid rgba(79,142,247,0.18);border-radius:10px;padding:20px;margin-top:13px;text-align:center;">
+    <div style="font-family:var(--font-display);font-size:46px;font-weight:800;background:linear-gradient(135deg,var(--neon-blue),var(--neon-violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;">82%</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:9px;">Market Alignment Score — Vault-wide</div>
+    <div style="font-size:12px;color:var(--text2);max-width:420px;margin:0 auto;line-height:1.7;">Your world-build themes are <strong style="color:var(--text);">strongly aligned</strong> with rising market conversations in AI governance, data rights, and institutional accountability.</div>
+    <div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:13px;">
+      <span class="fpill fp-cyan">Data Privacy ↑</span>
+      <span class="fpill fp-blue">AI Accountability ↑</span>
+      <span class="fpill fp-violet">Whistleblowing ↑</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button class="btn btn-primary" onclick="show('chargraph')">Character Graph →</button>
+    <button class="btn btn-ghost" onclick="show('triagent')">← Back</button>
+  </div>
+</div>
+
+<!-- ══ 07 CHARACTER GRAPH ══ -->
+<div id="view-chargraph" class="view">
+  <div class="prog">
+    <span class="ps ps-done">✓ Vault</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Beat Map</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Twists</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Flow</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Explain</span><span class="pa">›</span>
+    <span class="ps ps-done">✓ Market</span><span class="pa">›</span>
+    <span class="ps ps-cur">07 · Character Graph</span>
+  </div>
+  <div class="section-header">
+    <div class="section-tag">Step 07 · Feature 6</div>
+    <div class="section-title">Character Graph</div>
+    <div class="section-desc">Each vault note (scene) is parsed for characters, aliases, interactions, and relationships. Select a scene to inspect its extracted character graph — nodes are characters, edges are typed relations.</div>
+  </div>
+  <div class="info-note">⚠ Character extraction uses structured AI output (JSON schema). All relations require textual evidence and char_span anchoring. Confidence reflects extraction certainty. [simulated]</div>
+
+  <div class="cg-layout">
+    <!-- SVG GRAPH -->
+    <div>
+      <div class="cg-canvas" id="cg-canvas">
+        <svg class="cg-svg" id="cg-svg" viewBox="0 0 560 420">
+          <defs>
+            <marker id="cg-arr-rose" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#f43f5e"/></marker>
+            <marker id="cg-arr-amber" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#fb923c"/></marker>
+            <marker id="cg-arr-green" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#10b981"/></marker>
+            <marker id="cg-arr-violet" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#8b5cf6"/></marker>
+            <marker id="cg-arr-cyan" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#22d3ee"/></marker>
+            <filter id="cg-glow"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <g id="cg-graph-layer"></g>
+        </svg>
+      </div>
+      <!-- Scene summary below graph -->
+      <div style="margin-top:12px;">
+        <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px;">SCENE SUMMARY · [simulated extraction]</div>
+        <div class="cg-summary" id="cg-summary-text">Select a scene to load its character graph.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="cg-conflict-tags"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="cg-sidebar">
+      <div class="cg-scene-sel">
+        <div class="cg-scene-title">Select Scene (Vault Note)</div>
+        <button class="scene-btn active" onclick="loadScene('note-07',this)">note-07 · Maya's Log Check</button>
+        <button class="scene-btn" onclick="loadScene('note-12',this)">note-12 · Mentor Dismissal</button>
+        <button class="scene-btn" onclick="loadScene('note-55',this)">note-55 · Maya Writes It Down</button>
+      </div>
+      <div class="cg-detail" id="cg-detail">
+        <div class="cg-detail-title">Characters & Relations</div>
+        <div id="cg-detail-body"><div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);">Loading...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button class="btn btn-primary" onclick="show('landing')">← Restart Demo</button>
+    <button class="btn btn-ghost" onclick="show('market')">← Back</button>
+  </div>
+</div>
+
+</main></div>
+
+<!-- BEAT MODAL -->
+<div class="modal-ov" id="beat-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('beat-modal').classList.remove('open')">✕</button>
+    <div id="beat-modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ─── NOTES DATA ───
+const NOTES = [
+  { id:'note-07', title:'Maya\'s Morning Log Check',
+    excerpt:'Maya checks the system logs each morning before anyone else arrives. She notices a 40GB deletion she can\'t explain.',
+    full:'Maya checks the system logs each morning before anyone else arrives.\n\nShe notices a data purge that happened last Tuesday — a 40GB deletion she can\'t explain. The timestamp is 03:14 AM. No scheduled maintenance was listed.\n\nShe cross-references with the access log. One account: \'sysadmin-b\'. Inactive for 6 months.',
+    beat:{ act:'Ki', sub:'Ki-2', label:'Development of Routine / Emerging Anomaly', color:'#60a5fa', bg:'rgba(96,165,250,0.07)', border:'rgba(96,165,250,0.2)', conf:0.91 },
+    conns:['note-42 · twist_bridge · 0.92','note-17 · potential_to · 0.75','note-91 · motivates · 0.58'],
+    tags:['surveillance','audit','daily-ritual'] },
+  { id:'note-12', title:'Mentor Dismissal Scene',
+    excerpt:'"These things happen," her mentor said, not looking up. "Don\'t chase ghosts."',
+    full:'"These things happen," her mentor said, not looking up from his terminal.\n\n"Systems purge cached data all the time. Don\'t chase ghosts, Maya."\n\nShe wanted to say: 40GB is not a cache. Instead she said nothing.\n\nOn her way back to her desk she passed the server room. The access light was amber.',
+    beat:{ act:'Shō', sub:'Sho-2', label:'Authority Suppresses Inquiry', color:'#a78bfa', bg:'rgba(167,139,250,0.07)', border:'rgba(167,139,250,0.2)', conf:0.87 },
+    conns:['note-07 · motivates · 0.66 (reverse)','note-91 · potential_to · 0.61'],
+    tags:['authority','dismissal','workplace'] },
+  { id:'note-23', title:'Server Room — Amber Light',
+    excerpt:'The access light on Bay 3 was amber. It had been green every morning for three years. Maya photographed it.',
+    full:'The access light on Bay 3 was amber. It had been green every morning for three years.\n\nAmber meant write-in-progress or pending verification. At 9:41 AM on a Wednesday, neither made sense.\n\nMaya photographed it with her phone. The timestamp would matter later.',
+    beat:{ act:'Ki', sub:'Ki-3', label:'Physical Evidence Emerges', color:'#60a5fa', bg:'rgba(96,165,250,0.07)', border:'rgba(96,165,250,0.2)', conf:0.78 },
+    conns:['note-07 · supports · 0.82','note-42 · motivates · 0.55'],
+    tags:['evidence','physical','server'] },
+  { id:'note-42', title:'GDPR Compliance Audit Trail',
+    excerpt:'Under GDPR Article 17, a 40GB deletion without a logged request could indicate non-compliance or an undocumented compliance action.',
+    full:'Under GDPR Article 17, right-to-erasure requests must be logged with a retention record.\n\nA 40GB deletion without a logged erasure request could indicate:\n1. Non-compliance with GDPR audit trail requirements\n2. A deliberate compliance operation obscured from internal staff\n3. A data breach cover-up\n\nIn all three cases, the institutional response matters more than the deletion itself.',
+    beat:{ act:'Ten', sub:'Ten-3', label:'Regulatory Reframe — Twist', color:'#34d399', bg:'rgba(52,211,153,0.07)', border:'rgba(52,211,153,0.2)', conf:0.94 },
+    conns:['note-07 · twist_bridge · 0.92 (reverse)','note-12 · motivates · 0.66'],
+    tags:['gdpr','policy','regulation','compliance'] },
+  { id:'note-17', title:'Whistleblower Legal Framework',
+    excerpt:'EU Directive 2019/1937 covers employees who report data breaches harming public interest. Writing it down may already be protected disclosure.',
+    full:'Whistleblower protection under EU Directive 2019/1937 covers employees who report breaches of Union law that harm the public interest.\n\nData destruction without an audit trail — particularly personal data — may qualify under GDPR violations, financial fraud, or public safety grounds.\n\nThe act of writing it down may already constitute protected disclosure.',
+    beat:{ act:'Shō', sub:'Sho-4', label:'Systemic Stakes Revealed', color:'#a78bfa', bg:'rgba(167,139,250,0.07)', border:'rgba(167,139,250,0.2)', conf:0.83 },
+    conns:['note-07 · potential_to · 0.75 (reverse)','note-55 · supports · 0.70'],
+    tags:['whistleblower','legal','EU','protection'] },
+  { id:'note-55', title:'Maya Writes It Down — Resolution',
+    excerpt:'She wrote it all down. Date. Time. Account ID. Amber light. She saved it to three places: local, cloud, and printed.',
+    full:'She wrote it all down.\n\nDate. Time. Account ID: sysadmin-b. Deletion size: 40GB. Timestamp: 03:14 AM.\nAmber light: Bay 3, 9:41 AM.\nMentor\'s exact words: "Don\'t chase ghosts."\n\nShe saved it to three places: local drive, encrypted cloud, and a printed copy folded into the back of her notebook.\n\nShe didn\'t know yet if it was nothing. But she knew enough to know that "nothing" needed a record.',
+    beat:{ act:'Ketsu', sub:'Ketsu-3', label:'Ethical Agency as Resolution', color:'#fb923c', bg:'rgba(251,146,60,0.07)', border:'rgba(251,146,60,0.2)', conf:0.96 },
+    conns:['note-17 · supports · 0.70 (reverse)','note-07 · motivates · 0.88 (reverse)'],
+    tags:['resolution','documentation','agency','ethics'] },
+  { id:'note-91', title:'Corporate Surveillance Culture',
+    excerpt:'Research: employees who believe they\'re monitored are 3.2× more likely to dismiss anomalies when prompted by a manager.',
+    full:'Research across 14 tech organizations found that normalized internal surveillance correlates with self-censorship rather than transparency.\n\nKey finding: employees who believed they were monitored were 3.2× more likely to dismiss anomalies as "normal system behavior" when prompted by a manager.\n\nTerm coined: "institutional learned helplessness" — the conditioned belief that anomalies are not worth pursuing.\n\nThe mentor\'s response may not be ignorance. It may be compliance.',
+    beat:{ act:'Ten', sub:'Ten-1', label:'Macro Lens Reframes Micro — Twist', color:'#34d399', bg:'rgba(52,211,153,0.07)', border:'rgba(52,211,153,0.2)', conf:0.72 },
+    conns:['note-12 · twist_bridge · 0.58 (reverse)','note-07 · motivates · 0.58 (reverse)'],
+    tags:['surveillance','culture','research','macro'] },
+];
+
+const SLOTS = [
+  ['ki','Ki-1',null],['sho','Sho-1',null],['ten','Ten-1','note-91'],['ketsu','Ketsu-1',null],
+  ['ki','Ki-2','note-07'],['sho','Sho-2','note-12'],['ten','Ten-2',null],['ketsu','Ketsu-2',null],
+  ['ki','Ki-3','note-23'],['sho','Sho-3',null],['ten','Ten-3','note-42'],['ketsu','Ketsu-3','note-55'],
+  ['ki','Ki-4',null],['sho','Sho-4','note-17'],['ten','Ten-4',null],['ketsu','Ketsu-4',null],
+];
+const ACT_COLOR = { ki:'#60a5fa', sho:'#a78bfa', ten:'#34d399', ketsu:'#fb923c' };
+const ACT_GRAD  = { ki:'linear-gradient(90deg,#60a5fa,#3b82f6)', sho:'linear-gradient(90deg,#a78bfa,#7c3aed)', ten:'linear-gradient(90deg,#34d399,#059669)', ketsu:'linear-gradient(90deg,#fb923c,#ea580c)' };
+const BC_MAP    = { landing:'Overview', vault:'Note Vault', beatmap:'Beat Map', twists:'Twist Detection', graph:'Narrative Flow', triagent:'Tri-Agent Explain', market:'Market Alignment', chargraph:'Character Graph' };
+const NAV_ORDER = ['landing','vault','beatmap','twists','graph','triagent','market','chargraph'];
+
+function show(id) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  document.getElementById('bc').textContent = BC_MAP[id];
+  const i = NAV_ORDER.indexOf(id);
+  if (i>=0) document.querySelectorAll('.nav-item')[i].classList.add('active');
+}
+
+// ─── VAULT ───
+function buildVault() {
+  const list = document.getElementById('vnote-list');
+  list.innerHTML = NOTES.map((n,i)=>{
+    const b = n.beat;
+    return `<div class="vnote${i===0?' active':''}" onclick="selNote('${n.id}',this)">
+      <div class="vnote-top">
+        <div class="vnote-title">${n.title}</div>
+        <div class="beat-tag" style="color:${b.color};background:${b.bg};border:1px solid ${b.border}">${b.sub}</div>
+      </div>
+      <div class="vnote-excerpt">${n.excerpt}</div>
+      <div class="vnote-meta"><span>${n.id}</span><span>·</span><span>${n.tags.slice(0,2).join(', ')}</span><span>·</span><span>conf ${b.conf.toFixed(2)}</span></div>
+    </div>`;
+  }).join('');
+  selNote('note-07', list.firstElementChild);
+}
+
+function selNote(id, el) {
+  document.querySelectorAll('.vnote').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const n = NOTES.find(x=>x.id===id); if(!n) return;
+  const b = n.beat;
+  const cc = b.conf>=0.85?'var(--neon-green)':b.conf>=0.7?'var(--neon-amber)':'var(--neon-rose)';
+  const cg = b.conf>=0.85?'linear-gradient(90deg,#10b981,#34d399)':b.conf>=0.7?'linear-gradient(90deg,#f59e0b,#fbbf24)':'linear-gradient(90deg,#f43f5e,#fb7185)';
+  document.getElementById('vd-topbar').innerHTML=`
+    <div style="font-family:var(--font-mono);font-size:9px;color:var(--text3);">${n.id}</div>
+    <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text);">${n.title}</div>
+    <div style="margin-left:auto;display:flex;gap:5px;flex-wrap:wrap;">
+      ${n.tags.map(t=>`<span style="font-size:8px;font-family:var(--font-mono);padding:2px 6px;background:var(--surface);border:1px solid var(--border);border-radius:3px;color:var(--text3);">${t}</span>`).join('')}
+    </div>`;
+  document.getElementById('vd-body').innerHTML=`
+    <div class="note-text-box">${n.full}</div>
+    <div class="bcb">
+      <div class="bcb-label">Beat Classification · [AI classified · simulated]</div>
+      <div class="beat-badge" style="background:${b.bg};border:1px solid ${b.border}">
+        <div style="font-family:var(--font-mono);font-size:20px;font-weight:300;color:${b.color};">${b.sub}</div>
+        <div><div style="font-family:var(--font-display);font-size:12px;font-weight:700;color:${b.color};">${b.act}</div><div style="font-size:11px;color:var(--text2);font-family:var(--font-mono);">${b.label}</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:9px;">This note is classified as <strong style="color:${b.color};">${b.sub} (${b.act})</strong> — one structural fragment in the vault-wide narrative map, not a full arc.</div>
+      <div class="conf-row">
+        <span style="font-family:var(--font-mono);font-size:9px;color:var(--text3);">Classification confidence</span>
+        <div class="conf-bar-bg"><div class="conf-bar-fill" style="width:${Math.round(b.conf*100)}%;background:${cg}"></div></div>
+        <span style="font-family:var(--font-mono);font-size:10px;color:${cc};">${b.conf.toFixed(2)}</span>
+      </div>
+    </div>
+    <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:7px;">DETECTED CONNECTIONS TO OTHER VAULT NOTES</div>
+    <div class="conn-list">
+      ${n.conns.map(c=>{
+        const p=c.split(' · ');
+        const tc=p[1]==='twist_bridge'?'var(--neon-cyan)':p[1]==='potential_to'?'var(--neon-violet)':'var(--neon-blue)';
+        return `<div class="conn-item"><span style="color:${tc};font-size:12px;">→</span><span style="font-family:var(--font-mono);font-size:9px;padding:1px 6px;background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.18);border-radius:3px;color:var(--neon-blue);">${p[0]}</span><span style="font-size:9px;color:${tc};font-family:var(--font-mono);">${p[1]||''}</span><span style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-left:auto;">${p[2]||''}</span></div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ─── BEAT MAP ───
+function buildBeatMap() {
+  const grid = document.getElementById('beat-map-grid');
+  const cols={ki:[],sho:[],ten:[],ketsu:[]};
+  SLOTS.forEach(s=>cols[s[0]].push(s));
+  const hdrs={ki:'Ki · Introduction',sho:'Shō · Development',ten:'Ten · Twist',ketsu:'Ketsu · Resolution'};
+  const hc={ki:'h-ki',sho:'h-sho',ten:'h-ten',ketsu:'h-ketsu'};
+  let html='';
+  ['ki','sho','ten','ketsu'].forEach(act=>{
+    html+=`<div class="beat-col"><div class="beat-col-hdr ${hc[act]}">${hdrs[act]}</div>`;
+    cols[act].forEach(([a,sub,nid])=>{
+      const grad=ACT_GRAD[a];
+      if(nid){
+        const n=NOTES.find(x=>x.id===nid);
+        html+=`<div class="bslot s-${a}" onclick="openSlot('${nid}')">
+          <div class="bslot-bar" style="background:${grad}"></div>
+          <div class="bslot-id">${sub}</div>
+          <div class="bslot-title">${n.title}</div>
+          <div class="bslot-nid">${nid}</div>
+          <div class="bslot-excerpt">${n.excerpt}</div>
+          <div class="bslot-conf">
+            <div class="bslot-conf-bar"><div class="bslot-conf-fill" style="width:${Math.round(n.beat.conf*100)}%;background:${n.beat.conf>=0.85?'var(--neon-green)':'var(--neon-amber)'}"></div></div>
+            <span class="bslot-conf-num">${n.beat.conf.toFixed(2)}</span>
+          </div></div>`;
+      } else {
+        html+=`<div class="bslot empty s-${a}">
+          <div class="bslot-bar" style="background:${grad};opacity:0.3"></div>
+          <div class="bslot-id">${sub}</div>
+          <div class="bslot-empty-lbl">— gap —</div>
+        </div>`;
+      }
+    });
+    html+='</div>';
+  });
+  grid.innerHTML=html;
+}
+
+function openSlot(nid) {
+  const n=NOTES.find(x=>x.id===nid); if(!n) return;
+  const b=n.beat;
+  document.getElementById('beat-modal-body').innerHTML=`
+    <div style="font-family:var(--font-mono);font-size:9px;color:var(--neon-blue);margin-bottom:5px;">${n.id} · ${b.sub}</div>
+    <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">${n.title}</div>
+    <div style="font-family:var(--font-mono);font-size:11px;color:var(--text3);font-style:italic;border-left:2px solid ${b.border};padding:7px 10px;margin-bottom:11px;line-height:1.55;">${n.excerpt}</div>
+    <div style="background:${b.bg};border:1px solid ${b.border};border-radius:7px;padding:10px;margin-bottom:9px;">
+      <div style="font-size:9px;font-family:var(--font-mono);color:${b.color};margin-bottom:3px;">${b.sub} · ${b.act}</div>
+      <div style="font-size:11px;color:var(--text2);">${b.label}</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:13px;">
+      <button class="btn btn-primary btn-sm" onclick="show('vault');document.getElementById('beat-modal').classList.remove('open')">View in Vault</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('beat-modal').classList.remove('open')">Close</button>
+    </div>`;
+  document.getElementById('beat-modal').classList.add('open');
+}
+
+function selTwist(el) { document.querySelectorAll('.twist-card').forEach(c=>c.classList.remove('selected')); el.classList.add('selected'); }
+
+function selEdge(src,tgt,type,score,srcPos,tgtPos) {
+  const tc=type==='twist_bridge'?'var(--neon-cyan)':type==='potential_to'?'var(--neon-violet)':'var(--neon-blue)';
+  document.getElementById('edge-panel').innerHTML=`
+    <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;">
+      <div style="font-family:var(--font-mono);font-size:24px;font-weight:300;color:${tc};">${score.toFixed(2)}</div>
+      <div>
+        <div style="font-size:9px;padding:2px 8px;border-radius:20px;color:${tc};border:1px solid ${tc}44;background:${tc}11;font-family:var(--font-mono);display:inline-block;margin-bottom:3px;">${type}</div>
+        <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);">source: ${srcPos} → target: ${tgtPos}</div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--text2);">
+        <span style="color:var(--neon-blue);">${src}</span> → <span style="color:${tc};">${tgt}</span>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        <button class="btn btn-green btn-sm" onclick="alert('Accepted!')">✓ Accept</button>
+        <button class="btn btn-ghost btn-sm" onclick="alert('Revise.')">✏</button>
+        <button class="btn btn-ghost btn-sm" onclick="alert('Dismissed.')">✕</button>
+        <button class="btn btn-violet btn-sm" onclick="show('triagent')">Explain →</button>
+      </div>
+    </div>`;
+}
+
+// ─── CHARACTER GRAPH DATA ───
+const CG_SCENES = {
+  'note-07': {
+    meta: { scene_id:'note-07', language:'en' },
+    characters: [
+      { canon_name:'Maya', aliases:['she','her'], description:'Systems analyst who reviews logs each morning before colleagues arrive.' },
+      { canon_name:'sysadmin-b', aliases:['sysadmin-b account'], description:'Inactive admin account responsible for the 40GB deletion. Does not appear in person.' },
+    ],
+    interactions: [
+      { type:'CO_OCCURRENCE', src:'Maya', dst:'sysadmin-b', directional:true, evidence:'"One account: sysadmin-b. Inactive for 6 months."', sentiment:'negative', power_dynamics:'unclear', confidence:0.7 },
+    ],
+    relations: [
+      { src:'Maya', dst:'sysadmin-b', rel_type:'UNKNOWN', evidence:'"cross-references with the access log. One account: sysadmin-b"', confidence:0.6 },
+    ],
+    scene_summary: { who:['Maya','sysadmin-b'], where:'Server/log terminal', when:'Early morning', what:'Maya discovers a 40GB unexplained deletion by an inactive admin account during her daily log review.', conflicts:['Unexplained data deletion vs. no maintenance record'], turning_points:['Maya identifies the sysadmin-b account as the source'] }
+  },
+  'note-12': {
+    meta: { scene_id:'note-12', language:'en' },
+    characters: [
+      { canon_name:'Maya', aliases:['she','her'], description:'Systems analyst, subordinate in the org hierarchy.' },
+      { canon_name:'Mentor', aliases:['her mentor','he','boss'], description:'Maya\'s senior colleague or supervisor. Dismisses the anomaly.' },
+    ],
+    interactions: [
+      { type:'DIALOGUE_EXCHANGE', src:'Mentor', dst:'Maya', directional:true, evidence:'"Don\'t chase ghosts, Maya."', sentiment:'negative', power_dynamics:'dominant', confidence:0.95 },
+      { type:'DIALOGUE_EXCHANGE', src:'Maya', dst:'Mentor', directional:true, evidence:'"She wanted to say: 40GB is not a cache. Instead she said nothing."', sentiment:'mixed', power_dynamics:'submissive', confidence:0.88 },
+    ],
+    relations: [
+      { src:'Mentor', dst:'Maya', rel_type:'BOSS_OF', evidence:'"her mentor said... Don\'t chase ghosts, Maya"', confidence:0.85 },
+      { src:'Maya', dst:'Mentor', rel_type:'SUBORDINATE_OF', evidence:'"Instead she said nothing"', confidence:0.85 },
+    ],
+    scene_summary: { who:['Maya','Mentor'], where:'Office / workspace', when:'After Maya\'s log discovery', what:'Mentor dismisses Maya\'s concern about the deletion as routine, suppressing her inquiry through authority.', conflicts:['Maya\'s suspicion vs. mentor\'s institutional dismissal'], turning_points:['Mentor names Maya directly — establishing a power dynamic'] }
+  },
+  'note-55': {
+    meta: { scene_id:'note-55', language:'en' },
+    characters: [
+      { canon_name:'Maya', aliases:['she','her'], description:'Systems analyst. Takes unilateral protective action.' },
+    ],
+    interactions: [
+      { type:'PHYSICAL_ACTION', src:'Maya', dst:'Maya', directional:false, evidence:'"She saved it to three places: local drive, encrypted cloud, and a printed copy."', sentiment:'positive', power_dynamics:'dominant', confidence:0.96 },
+    ],
+    relations: [],
+    scene_summary: { who:['Maya'], where:'Personal workspace / private', when:'After the mentor dismissal', what:'Maya independently documents all evidence across three redundant locations, asserting ethical agency over institutional pressure.', conflicts:['Individual conscience vs. institutional suppression'], turning_points:['Act of triplication — conscious redundancy signals deliberate protection'] }
+  }
+};
+
+const REL_TYPE_CLASS = { FAMILY:'rt-family', BOSS_OF:'rt-boss', SUBORDINATE_OF:'rt-subordinate', ALLY:'rt-ally', RIVAL:'rt-rival', ENEMY:'rt-rival', UNKNOWN:'rt-unknown', PROTECTS:'rt-protects' };
+const INT_SENTIMENT_DOT = { positive:'s-pos', negative:'s-neg', neutral:'s-neu', mixed:'s-mix' };
+
+// SVG graph layouts per scene
+const CG_LAYOUTS = {
+  'note-07': {
+    nodes:[
+      { id:'Maya', x:180, y:210, color:'#f43f5e', r:40 },
+      { id:'sysadmin-b', x:390, y:210, color:'#8b5cf6', r:34 },
+    ],
+    edges:[{ src:'Maya', dst:'sysadmin-b', type:'CO_OCCURRENCE', color:'#8b5cf6', marker:'cg-arr-violet', label:'CO_OCCURRENCE · unclear', dash:'6,3', conf:0.7 }]
+  },
+  'note-12': {
+    nodes:[
+      { id:'Maya', x:160, y:210, color:'#f43f5e', r:40 },
+      { id:'Mentor', x:400, y:210, color:'#fb923c', r:40 },
+    ],
+    edges:[
+      { src:'Mentor', dst:'Maya', type:'BOSS_OF', color:'#fb923c', marker:'cg-arr-amber', label:'BOSS_OF · dominant', dash:'0', conf:0.85, offsetY:-20 },
+      { src:'Maya', dst:'Mentor', type:'SUBORDINATE_OF', color:'#a78bfa', marker:'cg-arr-violet', label:'SUBORDINATE_OF', dash:'4,3', conf:0.85, offsetY:20 },
+    ]
+  },
+  'note-55': {
+    nodes:[
+      { id:'Maya', x:280, y:210, color:'#10b981', r:46 },
+    ],
+    edges:[]
+  }
+};
+
+function renderCGGraph(sceneId) {
+  const layout = CG_LAYOUTS[sceneId];
+  const layer = document.getElementById('cg-graph-layer');
+  if(!layout || !layer) return;
+
+  let svg = '';
+
+  // Draw edges
+  layout.edges.forEach(e => {
+    const src = layout.nodes.find(n=>n.id===e.src);
+    const dst = layout.nodes.find(n=>n.id===e.dst);
+    if(!src||!dst) return;
+    const oy = e.offsetY||0;
+    const mx = (src.x+dst.x)/2, my = (src.y+dst.y)/2 + oy;
+    svg += `<path d="M${src.x},${src.y+oy} Q${mx},${my-30} ${dst.x},${dst.y+oy}" stroke="${e.color}" stroke-width="1.5" fill="none" stroke-dasharray="${e.dash}" marker-end="url(#${e.marker})" opacity="0.85"/>`;
+    svg += `<text x="${mx}" y="${my-18}" text-anchor="middle" fill="${e.color}" font-size="8" font-family="DM Mono,monospace" opacity="0.8">${e.label}</text>`;
+    svg += `<text x="${mx}" y="${my-8}" text-anchor="middle" fill="#4a5568" font-size="7" font-family="DM Mono,monospace">conf ${e.conf.toFixed(2)}</text>`;
+  });
+
+  // Draw nodes
+  layout.nodes.forEach(n => {
+    svg += `<g filter="url(#cg-glow)" onclick="highlightChar('${n.id}')" style="cursor:pointer">
+      <circle cx="${n.x}" cy="${n.y}" r="${n.r}" fill="${n.color}14" stroke="${n.color}" stroke-width="1.8"/>
+    </g>`;
+    svg += `<text x="${n.x}" y="${n.y-4}" text-anchor="middle" fill="${n.color}" font-size="11" font-family="Sora,sans-serif" font-weight="700" style="pointer-events:none">${n.id}</text>`;
+    // role label
+    const scene = CG_SCENES[sceneId];
+    const char = scene.characters.find(c=>c.canon_name===n.id);
+    if(char && char.aliases && char.aliases.length > 0){
+      svg += `<text x="${n.x}" y="${n.y+12}" text-anchor="middle" fill="#64748b" font-size="8" font-family="DM Mono,monospace" style="pointer-events:none">aka: ${char.aliases[0]}</text>`;
+    }
+  });
+
+  layer.innerHTML = svg;
+}
+
+function loadScene(sceneId, btn) {
+  // update scene buttons
+  document.querySelectorAll('.scene-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+
+  const scene = CG_SCENES[sceneId];
+  if(!scene) return;
+
+  // render graph
+  renderCGGraph(sceneId);
+
+  // update summary
+  const s = scene.scene_summary;
+  document.getElementById('cg-summary-text').innerHTML =
+    `<strong style="color:var(--text);">Who:</strong> ${s.who.join(', ')} &nbsp;·&nbsp; <strong style="color:var(--text);">Where:</strong> ${s.where} &nbsp;·&nbsp; <strong style="color:var(--text);">When:</strong> ${s.when}<br><br>${s.what}`;
+
+  const ctags = document.getElementById('cg-conflict-tags');
+  ctags.innerHTML = '';
+  s.conflicts.forEach(c=>{
+    const sp = document.createElement('span');
+    sp.style.cssText='font-size:9px;font-family:var(--font-mono);padding:3px 9px;border-radius:20px;color:var(--neon-rose);background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);margin-right:6px;margin-top:6px;display:inline-block;';
+    sp.textContent='⚡ '+c; ctags.appendChild(sp);
+  });
+  s.turning_points.forEach(t=>{
+    const sp = document.createElement('span');
+    sp.style.cssText='font-size:9px;font-family:var(--font-mono);padding:3px 9px;border-radius:20px;color:var(--neon-cyan);background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.2);margin-right:6px;margin-top:6px;display:inline-block;';
+    sp.textContent='↻ '+t; ctags.appendChild(sp);
+  });
+
+  // update detail panel
+  let html = `<div class="cg-detail-title">Characters (${scene.characters.length})</div>`;
+  scene.characters.forEach(c=>{
+    html+=`<div class="char-card" onclick="highlightChar('${c.canon_name}')">
+      <div class="char-name">${c.canon_name}</div>
+      <div class="char-aliases">aliases: ${c.aliases.join(', ')}</div>
+      <div class="char-desc">${c.description}</div>
+    </div>`;
+  });
+
+  if(scene.relations.length>0){
+    html+=`<div class="cg-detail-title" style="margin-top:12px;">Relations (${scene.relations.length})</div>`;
+    scene.relations.forEach(r=>{
+      const rc = REL_TYPE_CLASS[r.rel_type]||'rt-unknown';
+      html+=`<div class="rel-row">
+        <span style="font-family:var(--font-mono);font-size:9px;color:var(--neon-blue);">${r.src}</span>
+        <span style="color:var(--text3);font-size:10px;">→</span>
+        <span style="font-family:var(--font-mono);font-size:9px;color:var(--text2);">${r.dst}</span>
+        <span class="rel-type-badge ${rc}">${r.rel_type}</span>
+        <span class="conf-pip">${r.confidence.toFixed(1)}</span>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--text3);padding:0 8px 6px;font-style:italic;">"${r.evidence}"</div>`;
+    });
+  }
+
+  if(scene.interactions.length>0){
+    html+=`<div class="cg-detail-title" style="margin-top:12px;">Interactions (${scene.interactions.length})</div>`;
+    scene.interactions.forEach(i=>{
+      const dot = INT_SENTIMENT_DOT[i.sentiment]||'s-neu';
+      html+=`<div class="interaction-row">
+        <span class="sentiment-dot ${dot}"></span>
+        <span class="int-type">${i.type}</span>
+        <span style="font-family:var(--font-mono);font-size:9px;color:var(--neon-blue);">${i.src}</span>
+        <span style="color:var(--text3);font-size:10px;">${i.directional?'→':'↔'}</span>
+        <span style="font-family:var(--font-mono);font-size:9px;color:var(--text2);">${i.dst}</span>
+        <span style="font-size:9px;color:var(--text3);margin-left:auto;">${i.power_dynamics}</span>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--text3);padding:0 8px 6px;font-style:italic;">"${i.evidence.substring(0,60)}${i.evidence.length>60?'…':''}"</div>`;
+    });
+  }
+
+  document.getElementById('cg-detail-body').innerHTML = html;
+}
+
+function highlightChar(name) {
+  document.querySelectorAll('.char-card').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.char-card').forEach(c=>{ if(c.querySelector('.char-name')&&c.querySelector('.char-name').textContent===name) c.classList.add('active'); });
+}
+
+buildVault();
+buildBeatMap();
+// init character graph with first scene
+setTimeout(()=>loadScene('note-07', document.querySelector('.scene-btn')), 100);
+</script>
+</body>
+</html>
