@@ -485,15 +485,21 @@ body::before {
         <marker id="a-amber" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L7,3z" fill="#f59e0b"/></marker>
         <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
-      <!-- edges -->
-      <path d="M152,125 C265,75 385,82 455,120" stroke="#22d3ee" stroke-width="1.7" fill="none" stroke-dasharray="5,3" marker-end="url(#a-cyan)" style="cursor:pointer" onclick="selEdge('note-07','note-42','twist_bridge',0.92,'Ki-2','Ten-3')"/>
-      <text x="284" y="77" fill="#22d3ee" font-size="9" font-family="DM Mono,monospace">twist_bridge · 0.92</text>
-      <path d="M153,168 C272,168 374,183 456,172" stroke="#8b5cf6" stroke-width="1.4" fill="none" stroke-dasharray="5,3" marker-end="url(#a-violet)" style="cursor:pointer" onclick="selEdge('note-07','note-17','potential_to',0.75,'Ki-2','Sho-4')"/>
-      <text x="278" y="190" fill="#8b5cf6" font-size="9" font-family="DM Mono,monospace">potential_to · 0.75</text>
-      <path d="M150,212 C262,254 374,258 454,234" stroke="#4f8ef7" stroke-width="1.2" fill="none" stroke-dasharray="5,3" marker-end="url(#a-blue)" style="cursor:pointer" onclick="selEdge('note-07','note-91','motivates',0.58,'Ki-2','Ten-1')"/>
-      <text x="270" y="272" fill="#4f8ef7" font-size="9" font-family="DM Mono,monospace">motivates · 0.58</text>
-      <path d="M525,137 C588,142 608,192 580,218" stroke="#f59e0b" stroke-width="1.2" fill="none" stroke-dasharray="4,3" marker-end="url(#a-amber)" style="cursor:pointer" onclick="selEdge('note-42','note-12','motivates',0.66,'Ten-3','Sho-2')"/>
-      <text x="606" y="186" fill="#f59e0b" font-size="8" font-family="DM Mono,monospace">mot·0.66</text>
+      <!-- edges (visible) -->
+      <path d="M152,125 C265,75 385,82 455,120" stroke="#22d3ee" stroke-width="1.7" fill="none" stroke-dasharray="5,3" marker-end="url(#a-cyan)" pointer-events="none"/>
+      <path d="M153,168 C272,168 374,183 456,172" stroke="#8b5cf6" stroke-width="1.4" fill="none" stroke-dasharray="5,3" marker-end="url(#a-violet)" pointer-events="none"/>
+      <path d="M150,212 C262,254 374,258 454,234" stroke="#4f8ef7" stroke-width="1.2" fill="none" stroke-dasharray="5,3" marker-end="url(#a-blue)" pointer-events="none"/>
+      <path d="M525,137 C588,142 608,192 580,218" stroke="#f59e0b" stroke-width="1.2" fill="none" stroke-dasharray="4,3" marker-end="url(#a-amber)" pointer-events="none"/>
+      <!-- edge labels -->
+      <text x="284" y="77" fill="#22d3ee" font-size="9" font-family="DM Mono,monospace" pointer-events="none">twist_bridge · 0.92</text>
+      <text x="278" y="190" fill="#8b5cf6" font-size="9" font-family="DM Mono,monospace" pointer-events="none">potential_to · 0.75</text>
+      <text x="270" y="272" fill="#4f8ef7" font-size="9" font-family="DM Mono,monospace" pointer-events="none">motivates · 0.58</text>
+      <text x="606" y="186" fill="#f59e0b" font-size="8" font-family="DM Mono,monospace" pointer-events="none">mot·0.66</text>
+      <!-- edge hit areas (invisible wide strokes for reliable clicking) -->
+      <path d="M152,125 C265,75 385,82 455,120" stroke="transparent" stroke-width="18" fill="none" style="cursor:pointer" onclick="selEdge('note-07','note-42','twist_bridge',0.92,'Ki-2','Ten-3')"/>
+      <path d="M153,168 C272,168 374,183 456,172" stroke="transparent" stroke-width="18" fill="none" style="cursor:pointer" onclick="selEdge('note-07','note-17','potential_to',0.75,'Ki-2','Sho-4')"/>
+      <path d="M150,212 C262,254 374,258 454,234" stroke="transparent" stroke-width="18" fill="none" style="cursor:pointer" onclick="selEdge('note-07','note-91','motivates',0.58,'Ki-2','Ten-1')"/>
+      <path d="M525,137 C588,142 608,192 580,218" stroke="transparent" stroke-width="18" fill="none" style="cursor:pointer" onclick="selEdge('note-42','note-12','motivates',0.66,'Ten-3','Sho-2')"/>
       <!-- nodes -->
       <g filter="url(#glow)"><circle cx="112" cy="168" r="44" fill="rgba(79,142,247,0.08)" stroke="#4f8ef7" stroke-width="1.5"/></g>
       <text x="112" y="160" text-anchor="middle" fill="#4f8ef7" font-size="9" font-family="DM Mono,monospace">note-07</text>
